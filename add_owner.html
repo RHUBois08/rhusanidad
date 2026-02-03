@@ -165,50 +165,67 @@
         <input class="submit-button" type="submit" value="Submit">
     </form>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.querySelector('form[name="submit-to-google-sheet"]');
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form[name="submit-to-google-sheet"]');
 
-      // Handle form submission
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = {
-          businessName: form.businessName.value,
-          ownerName: form.ownerName.value,
-          applicantType: form.applicantType.value,
-          applicationDate: form.applicationDate.value,
-          address: form.address.value,
-          remarks: form.remarks.value,
-          status: form.status.value
-        };
+            // Handle form submission with SweetAlert2 feedback
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = {
+                    businessName: form.businessName.value,
+                    ownerName: form.ownerName.value,
+                    applicantType: form.applicantType.value,
+                    applicationDate: form.applicationDate.value,
+                    address: form.address.value,
+                    remarks: form.remarks.value,
+                    status: form.status.value
+                };
 
-        try {
-          const response = await fetch('http://localhost:3000/api/owners', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
-          });
-          
-          const data = await response.json();
-          
-          if (!response.ok) {
-            if (data.error === 'A business owner with this name already exists') {
-              alert('This business owner already exists in the database. Cannot create duplicate entry.');
-              return;
-            }
-            throw new Error(data.error || 'Failed to submit data');
-          }
+                try {
+                    const response = await fetch('http://localhost:3000/api/owners', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData),
+                    });
 
-          // Clear form
-          form.reset();
-          alert('Data submitted successfully!');
-        } catch (error) {
-          console.error('Error submitting data:', error);
-          alert(error.message || 'Failed to submit data.');
-        }
-      });
-    });
-    </script>
-    <script src="script.js"></script>
+                    const data = await response.json();
+
+                    // helper UI functions with graceful fallbacks
+                    const showSuccess = async (text = 'Submitted Successfully.') => {
+                        if (window.Swal && typeof Swal.fire === 'function') return Swal.fire({ icon: 'success', title: 'Done', text, confirmButtonText: 'OK' });
+                        if (window.swal) return swal('Done', text, 'success');
+                        alert(text);
+                    };
+                    const showWarning = async (text) => {
+                        if (window.Swal && typeof Swal.fire === 'function') return Swal.fire({ icon: 'warning', title: 'Warning', text });
+                        if (window.swal) return swal('Warning', text, 'warning');
+                        alert(text);
+                    };
+                    const showError = async (text) => {
+                        if (window.Swal && typeof Swal.fire === 'function') return Swal.fire({ icon: 'error', title: 'Error', text });
+                        if (window.swal) return swal('Error', text, 'error');
+                        alert(text);
+                    };
+
+                    if (!response.ok) {
+                        if (data && typeof data.error === 'string' && data.error.toLowerCase().includes('already exists')) {
+                            await showWarning('This business owner already exists in the database.');
+                            return;
+                        }
+                        throw new Error(data.error || 'Failed to submit data');
+                    }
+
+                    // success: show confirmation then redirect
+                    form.reset();
+                    await showSuccess();
+                    window.location.href = 'home.html';
+                } catch (error) {
+                    console.error('Error submitting data:', error);
+                    await showError((error && error.message) ? error.message : 'Failed to submit data.');
+                }
+            });
+        });
+        </script>
 </body>
 </html>

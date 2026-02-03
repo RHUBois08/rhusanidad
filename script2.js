@@ -35,7 +35,11 @@ fetch(scriptURL + "?action=getData") // Add a query parameter
     })
     .catch(error => {
         console.error('Error fetching data:', error); // Improved error handling
-        alert('Failed to fetch data. Please try again later.'); // User feedback
+        if (window.UI && typeof window.UI.showError === 'function') {
+            window.UI.showError('Failed to fetch data. Please try again later.');
+        } else {
+            alert('Failed to fetch data. Please try again later.');
+        }
     });
 }
 

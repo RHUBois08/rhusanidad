@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css\2.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="image\sanidad_logo.png" type="image/png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="assets/js/ui.js"></script>
     <style>
         body {
             margin: 0;
@@ -255,7 +257,7 @@
                     button.addEventListener('click', async () => {
                         const businessName = button.getAttribute('data-business');
                         const ownerName = button.getAttribute('data-owner');
-                        if (confirm(`Are you sure you want to delete the record for ${businessName} - ${ownerName}?`)) {
+                        if (await UI.showConfirm(`Are you sure you want to delete the record for ${businessName} - ${ownerName}?`)) {
                             try {
                                 const response = await fetch('http://localhost:3000/api/owners/delete', {
                                     method: 'POST',
@@ -267,11 +269,11 @@
                                     console.error('Failed to delete record:', errorData);
                                     throw new Error(errorData.error || 'Failed to delete record');
                                 }
-                                alert('Record deleted successfully');
+                                UI.showSuccess('Record deleted successfully');
                                 fetchData();
                             } catch (error) {
                                 console.error('Error deleting record:', error);
-                                alert('Failed to delete record');
+                                UI.showError('Failed to delete record');
                             }
                         }
                     });

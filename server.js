@@ -8,51 +8,40 @@ const fs = require('fs');
 const PizZip = require("pizzip");
 const Docxtemplater = require("docxtemplater");
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
-const port = 3000;
-
-// PostgreSQL connection pool setup
-const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'sanitary_permits_db',
-  password: '1234',
-  port: 5432,
-});
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Connection config for default 'postgres' database to check/create sanitary_permits_db
+// Build DB configs from environment variables
+const DB_HOST = process.env.PGHOST || 'localhost';
+const DB_USER = process.env.PGUSER || 'rhu';
+const DB_PASSWORD = process.env.PGPASSWORD || 'password';
+const DB_PORT = process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432;
+const DB_NAME = process.env.PGDATABASE || 'sanitary_permits_db';
+const DEFAULT_DB = process.env.PGDEFAULT_DB || 'postgres';
+
+// Connection config for default DB to check/create sanitary_permits_db
 const defaultDbConfig = {
-    user: 'postgres',
-    host: 'localhost',
-    database: 'sanitary_permits_db',
-    password: 'password',
-    port: 5432,
+    user: DB_USER,
+    host: DB_HOST,
+    database: DEFAULT_DB,
+    password: DB_PASSWORD,
+    port: DB_PORT,
 };
 
 // Connection config for sanitary_permits_db
 const sanitaryDbConfig = {
-    user: 'postgres',
-    host: 'localhost',
-    database: 'sanitary_permits_db',
-    password: 'password',
-    port: 5432,
+    user: DB_USER,
+    host: DB_HOST,
+    database: DB_NAME,
+    password: DB_PASSWORD,
+    port: DB_PORT,
 };
-
-const dbConfig = {
-    user: 'postgres',
-    host: 'localhost',
-    database: 'sanitary_permits_db',
-    password: 'passsword',
-    port: 5432,
-};
-
-module.exports = dbConfig;
-
 async function createDatabaseIfNotExists() {
     const client = new Client(defaultDbConfig);
     try {
@@ -129,12 +118,25 @@ async function createTables(pool) {
         );
     `;
 
+    const createClassificationsTableQuery = `
+        CREATE TABLE IF NOT EXISTS classifications (
+            id SERIAL PRIMARY KEY,
+            business_name VARCHAR(255),
+            owner_name VARCHAR(255),
+            permit_number VARCHAR(255),
+            classification VARCHAR(255),
+            categories TEXT
+        );
+    `;
+
     try {
         await pool.query(createOwnersTableQuery);
         // Ensure date_issued and registered_num exist for existing tables
         await pool.query(alterOwnersTableQuery);
         await pool.query(createEmployeesTableQuery);
+        await pool.query(createClassificationsTableQuery);
         console.log('Table "employees" is ready');
+        console.log('Table "classifications" is ready');
     } catch (err) {
         console.error('Error creating tables', err);
         throw err;
@@ -606,10 +608,7 @@ async function init() {
                 const day = currentDate.getDate();
                 const currentYear = currentDate.getFullYear();
                 const formattedDate = `${month} ${day}, ${currentYear}`;
-
                 // Fetch employee list
-                const { businessName, ownerName, year } = req.query;
-
                 // Fetch owner application date
                 const ownerQuery = `
                     SELECT application_date FROM owners
@@ -823,7 +822,7 @@ async function init() {
         });
 
         app.listen(port, () => {
-            console.log('Server running on http://localhost:${port}');
+            console.log(`Server running on http://localhost:${port}`);
         });
     } catch (err) {
         console.error('Failed to initialize server', err);
